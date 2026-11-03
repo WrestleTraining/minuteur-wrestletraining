@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12151a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Minuteur">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>WrestleTraining – Minuteur</title>
 <style>
 :root{
@@ -167,7 +175,7 @@ body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"
   </div>
 
   <label class="voice"><input type="checkbox" id="voiceOn" checked> Voix activée</label>
-  <label class="voice"><input type="checkbox" id="buzzOn" checked> Signal sonore avant la voix</label>
+  <label class="voice"><input type="checkbox" id="buzzOn" checked> Corne de brume avant la voix</label>
 </div>
 
 <script>
@@ -241,15 +249,27 @@ function phases(){ return PROG.phases; }
 function fmt(s){ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
 
 let actx=null;
-function buzz(){
+function buzz(){ // corne de brume : tons graves + harmoniques, léger glissando vers le bas
   if(!$("buzzOn").checked) return false;
   try{
     actx = actx || new (window.AudioContext||window.webkitAudioContext)();
     if(actx.state==="suspended") actx.resume();
-    const t=actx.currentTime, g=actx.createGain();
-    g.gain.setValueAtTime(1,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
-    g.connect(actx.destination);
-    [880,1175].forEach(f=>{ const o=actx.createOscillator(); o.type="square"; o.frequency.value=f; o.connect(g); o.start(t); o.stop(t+0.4); });
+    const t=actx.currentTime, dur=1.0;
+    const g=actx.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.9,t+0.08);
+    g.gain.setValueAtTime(0.9,t+dur-0.25);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    const lp=actx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1100; lp.Q.value=2;
+    lp.connect(g); g.connect(actx.destination);
+    [[130,0],[130,8],[196,0],[65,0]].forEach(([f,det],i)=>{
+      const o=actx.createOscillator(); o.type=i===3?"square":"sawtooth";
+      o.frequency.setValueAtTime(f*1.04,t); o.frequency.exponentialRampToValueAtTime(f,t+0.15);
+      o.frequency.setValueAtTime(f,t+dur-0.3); o.frequency.exponentialRampToValueAtTime(f*0.93,t+dur);
+      o.detune.value=det;
+      const og=actx.createGain(); og.gain.value=i===2?0.35:(i===3?0.4:0.6);
+      o.connect(og); og.connect(lp); o.start(t); o.stop(t+dur+0.05);
+    });
     return true;
   }catch(e){ return false; }
 }
@@ -261,7 +281,7 @@ function speak(text){
   u.lang="fr-FR"; u.rate=1.1; u.pitch=1.6; u.volume=1;
   const v = speechSynthesis.getVoices().find(v=>v.lang && v.lang.toLowerCase().startsWith("fr"));
   if(v) u.voice=v;
-  setTimeout(()=>speechSynthesis.speak(u), b?350:0);
+  setTimeout(()=>speechSynthesis.speak(u), b?900:0);
 }
 
 function buildProg(){ const P=PRESETS[cur]; PROG = P.build(P.params ? P.params.map(q=>q.val) : []); }
@@ -373,6 +393,10 @@ document.addEventListener("visibilitychange",()=>{ if(state==="run" && !document
 if("speechSynthesis" in window) speechSynthesis.getVoices();
 
 renderPresets(); resetAll();
+
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>{ try{ navigator.serviceWorker.register("sw.js"); }catch(e){} });
+}
 </script>
 </body>
 </html>
