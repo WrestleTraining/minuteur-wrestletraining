@@ -58,6 +58,11 @@ body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"
 .card[data-phase="Changement"]{border-color:var(--gold)}
 .card[data-phase="Lutte"] .phase{color:var(--match)}
 .card[data-phase="Changement"] .phase{color:var(--gold)}
+.card[data-phase="Debout"]{border-color:var(--match)}
+.card[data-phase="Sol"]{border-color:var(--gold)}
+.card[data-phase="Debout"] .phase{color:var(--match)}
+.card[data-phase="Sol"] .phase{color:var(--gold)}
+.presets button:last-child:nth-child(odd){grid-column:1/-1}
 .seq div.L.cur{border-color:var(--match)}
 .seq div.E.cur{border-color:var(--match)} .seq div.R.cur{border-color:var(--tech)}
 .params{display:flex;flex-direction:column;gap:8px;width:100%;background:var(--panel);
@@ -216,6 +221,17 @@ function libre(ex,rep,nEx,nCyc,repCyc){
   }
   return {phases,groups};
 }
+function deboutSol(nm,deb,sol,rep){
+  const phases=[], groups=[];
+  for(let m=1;m<=nm;m++){
+    [["Debout",deb],["Sol",sol],["Debout",deb],["Sol",sol]].forEach((x,i)=>{
+      phases.push({s:x[1],label:x[0],g:m-1,info:"Match "+m+" / "+nm+" · Période "+(i+1)+" / 4"});
+    });
+    groups.push({t:String(m),b:nm<=6?"Match":"",c:"L"});
+    if(m<nm && rep>0) phases.push({s:rep,label:"Repos",g:m-1,info:"Repos · prochain match "+(m+1)+" / "+nm});
+  }
+  return {phases,groups};
+}
 function lutte(n){
   const phases=[], groups=[];
   for(let k=1;k<=n;k++){
@@ -232,6 +248,12 @@ const PRESETS = [
   { name:"Italienne", desc:"3 · 1 · 2 · 2 · 1 · 3 min", build:()=>italienne() },
   { name:"Circuit training", desc:"Tabata", params:[{text:"Nombre d'exercices",min:1,max:20,val:8}], build:v=>circuit(v[0]) },
   { name:"Lutte à thème", desc:"30s · 10s · 30s", params:[{text:"Nombre de passages",min:1,max:15,val:4}], build:v=>lutte(v[0]) },
+  { name:"Debout / Sol", desc:"4 périodes par match", params:[
+      {text:"Nombre de matchs",min:1,max:15,val:3},
+      {text:"Temps debout",min:5,max:600,step:5,val:90,unit:"s"},
+      {text:"Temps sol",min:5,max:600,step:5,val:30,unit:"s"},
+      {text:"Repos entre matchs",min:0,max:600,step:5,val:120,unit:"s"}
+    ], build:v=>deboutSol(v[0],v[1],v[2],v[3]) },
   { name:"Libre", desc:"Réglages libres", params:[
       {text:"Temps d'exercice",min:5,max:600,step:5,val:30,unit:"s"},
       {text:"Repos entre exercices",min:0,max:600,step:5,val:15,unit:"s"},
