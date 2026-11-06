@@ -310,9 +310,9 @@ function buzz(){ // début de phase : 1 salve
   if(!$("buzzOn").checked) return false;
   try{ audioInit(); horn(actx.currentTime,1.0); return true; }catch(e){ return false; }
 }
-function finalHorn(){ // fin du chrono complet : 3 salves, la dernière plus longue
+function finalHorn(){ // fin du chrono complet : 1 seul coup, long
   if(!$("buzzOn").checked) return;
-  try{ audioInit(); const t=actx.currentTime; horn(t,1.0); horn(t+1.3,1.0); horn(t+2.6,2.0); }catch(e){}
+  try{ audioInit(); horn(actx.currentTime,2.0); }catch(e){}
 }
 function speak(text){
   const b = buzz();
